@@ -7,7 +7,7 @@ gemini bonkör diye biliyorum
 
 python ile yazılır herhalde
 
-frontend için nextjs kullandım dashboard onunla yapılabilir
+frontend ve dashboard kısımları streamlit/gradio gibi bir şeyle yapılabilir
 
 normal database için de sqlite falan kullanabiliriz
 
