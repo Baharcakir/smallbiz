@@ -1,0 +1,41 @@
+order_id,order_date,customer_id,customer_email,product_id,product_name,quantity,price,region,payment_method
+ORD-1001,2026-02-10,CU-001,alice@example.com,PR-01,Blue Widget,1,19.99,West,Credit Card
+ORD-1002,2026-02-12,CU-002,bob@example.com,PR-02,Red Widget,2,29.99,East,PayPal
+ORD-1003,2026-02-13,CU-003,charlie@example.com,PR-03,Green Widget,1,15.50,South,Credit Card
+ORD-1004,2026-02-15,CU-004,dana@example.com,PR-01,Blue Widget,3,19.99,North,Credit Card
+ORD-1005,2026-02-18,CU-002,bob@example.com,PR-04,Yellow Gizmo,1,99.99,East,Invoice
+ORD-1006,2026-02-20,CU-005,eric@example.com,PR-02,Red Widget,1,29.99,West,PayPal
+ORD-1007,2026-02-22,CU-006,fay@example.com,PR-05,Small Gadget,5,5.00,South,Cash
+ORD-1008,2026-02-25,CU-007,gary@example.com,PR-03,Green Widget,2,15.50,North,Credit Card
+ORD-1009,2026-03-01,CU-008,holly@example.com,PR-06,Premium Widget,1,249.99,East,Credit Card
+ORD-1010,2026-03-03,CU-001,alice@example.com,PR-05,Small Gadget,2,5.00,West,PayPal
+ORD-1011,2026-03-05,CU-009,ivan@example.com,PR-02,Red Widget,4,29.99,South,Credit Card
+ORD-1012,2026-03-08,CU-010,jane@example.com,PR-01,Blue Widget,1,19.99,North,Invoice
+ORD-1013,2026-03-10,CU-011,kate@example.com,PR-04,Yellow Gizmo,1,99.99,East,Credit Card
+ORD-1014,2026-03-12,CU-012,luke@example.com,PR-03,Green Widget,3,15.50,West,Cash
+ORD-1015,2026-03-14,CU-013,maya@example.com,PR-06,Premium Widget,1,249.99,South,Credit Card
+ORD-1016,2026-03-16,CU-014,ned@example.com,PR-02,Red Widget,2,29.99,North,PayPal
+ORD-1017,2026-03-18,CU-015,olga@example.com,PR-05,Small Gadget,10,5.00,East,Cash
+ORD-1018,2026-03-20,CU-016,paul@example.com,PR-01,Blue Widget,1,19.99,West,Credit Card
+ORD-1019,2026-03-22,CU-017,quinn@example.com,PR-07,Deluxe Gizmo,1,149.99,South,Credit Card
+ORD-1020,2026-03-25,CU-018,ruth@example.com,PR-04,Yellow Gizmo,2,99.99,North,Invoice
+ORD-1021,2026-03-27,CU-019,sam@example.com,PR-02,Red Widget,1,29.99,East,PayPal
+ORD-1022,2026-03-29,CU-020,tina@example.com,PR-03,Green Widget,2,15.50,West,Credit Card
+ORD-1023,2026-04-01,CU-021,uma@example.com,PR-06,Premium Widget,1,249.99,South,PayPal
+ORD-1024,2026-04-03,CU-022,vic@example.com,PR-05,Small Gadget,3,5.00,North,Cash
+ORD-1025,2026-04-05,CU-023,walt@example.com,PR-01,Blue Widget,2,19.99,East,Credit Card
+ORD-1026,2026-04-07,CU-024,xena@example.com,PR-02,Red Widget,1,29.99,West,Credit Card
+ORD-1027,2026-04-09,CU-025,yara@example.com,PR-08,Accessory Pack,4,12.50,South,PayPal
+ORD-1028,2026-04-12,CU-026,zane@example.com,PR-03,Green Widget,1,15.50,North,Invoice
+ORD-1029,2026-04-15,CU-002,bob@example.com,PR-06,Premium Widget,1,249.99,East,Credit Card
+ORD-1030,2026-04-18,CU-027,amy@example.com,PR-04,Yellow Gizmo,1,99.99,West,PayPal
+ORD-1031,2026-04-20,CU-028,ben@example.com,PR-05,Small Gadget,6,5.00,South,Cash
+ORD-1032,2026-04-22,CU-029,carla@example.com,PR-02,Red Widget,2,29.99,North,Credit Card
+ORD-1033,2026-04-24,CU-030,doug@example.com,PR-07,Deluxe Gizmo,1,149.99,East,Invoice
+ORD-1034,2026-04-26,CU-031,ella@example.com,PR-01,Blue Widget,1,19.99,West,Credit Card
+ORD-1035,2026-04-28,CU-032,finn@example.com,PR-08,Accessory Pack,2,12.50,South,PayPal
+ORD-1036,2026-04-30,CU-033,gina@example.com,PR-03,Green Widget,3,15.50,North,Credit Card
+ORD-1037,2026-05-02,CU-034,henry@example.com,PR-04,Yellow Gizmo,1,99.99,East,Credit Card
+ORD-1038,2026-05-04,CU-035,ivy@example.com,PR-06,Premium Widget,2,249.99,West,Invoice
+ORD-1039,2026-05-06,CU-036,jack@example.com,PR-05,Small Gadget,4,5.00,South,PayPal
+ORD-1040,2026-05-08,CU-037,kara@example.com,PR-02,Red Widget,1,29.99,North,Credit Card
