@@ -249,31 +249,33 @@ def run_order_agent(llm_with_tools, user_input: str) -> str:
             "get_order_items": get_order_items
         }
         
-        # Route based on user input keywords
+        # Route based on user input keywords (stricter matching)
         user_lower = user_input.lower()
         result = None
-        
-        if any(word in user_lower for word in ["status", "order", "find", "get", "what", "show"]):
-            # Extract order ID if present
+
+        # Only trigger routing when the user explicitly mentions orders or status
+        if any(word in user_lower for word in ["order", "status", "find", "get", "show"]):
             import re
+            # 1) If an order ID is present, return that order immediately
             order_match = re.search(r'ORD-\d+', user_input, re.IGNORECASE)
             if order_match:
                 order_id = order_match.group(0)
                 result = call_tool(get_order_status, order_id)
-            elif any(word in user_lower for word in ["summary", "all", "total", "count", "how many"]):
-                result = call_tool(get_all_orders_summary)
-            elif "@" in user_input or any(word in user_lower for word in ["email", "customer", "user"]):
-                # Extract email if present
+            else:
+                # 2) If an email is present, return orders for that customer
                 email_match = re.search(r'[\w\.-]+@[\w\.-]+', user_input)
                 if email_match:
                     email = email_match.group(0)
                     result = call_tool(get_customer_orders, email)
-            elif any(word in user_lower for word in ["pending", "processing", "shipped", "delivered"]):
-                # Extract status
-                for status in ["pending", "processing", "shipped", "delivered"]:
-                    if status in user_lower:
-                        result = call_tool(get_orders_by_status_filter, status)
-                        break
+                else:
+                    # 3) If a concrete status word is present, filter by that status
+                    for status in ["pending", "processing", "shipped", "delivered"]:
+                        if re.search(rf'\b{status}\b', user_lower):
+                            result = call_tool(get_orders_by_status_filter, status)
+                            break
+                    # 4) If the user explicitly asked for a summary, return it
+                    if result is None and any(word in user_lower for word in ["summary", "all orders", "total", "count", "how many"]):
+                        result = call_tool(get_all_orders_summary)
         
         if any(word in user_lower for word in ["update", "change", "mark", "set"]):
             import re

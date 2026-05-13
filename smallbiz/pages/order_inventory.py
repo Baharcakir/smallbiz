@@ -5,6 +5,7 @@ from datetime import datetime
 import database
 import email_service
 from agents.order_agent import create_order_agent, run_order_agent
+from chat_history import record_chat_exchange
 import os
 from dotenv import load_dotenv
 
@@ -13,10 +14,18 @@ load_dotenv()
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="Order Tracking",
+    page_title="Sipariş Takibi",
     page_icon="📦",
     layout="wide"
 )
+
+# Durum çevirileri (Arka plan işleyişini bozmamak için UI gösteriminde kullanılır)
+STATUS_MAP = {
+    "pending": "Bekleyen",
+    "processing": "İşleniyor",
+    "shipped": "Kargolandı",
+    "delivered": "Teslim Edildi"
+}
 
 # --- Initialize Session State ---
 if "order_agent" not in st.session_state:
@@ -26,24 +35,24 @@ if "order_agent" not in st.session_state:
             st.session_state.order_agent = create_order_agent(api_key)
         except Exception as e:
             st.session_state.order_agent = None
-            st.warning(f"⚠️ Could not initialize Order Agent: {str(e)}")
+            st.warning(f"⚠️ Sipariş Asistanı başlatılamadı: {str(e)}")
     else:
         st.session_state.order_agent = None
-        st.warning("⚠️ GOOGLE_API_KEY not set. Agent features will be disabled.")
+        st.warning("⚠️ GOOGLE_API_KEY ayarlanmamış. Asistan özellikleri devre dışı bırakılacak.")
 
 # --- Sidebar ---
 with st.sidebar:
-    st.title("Navigation")
+    st.title("Navigasyon")
     
-    if st.button("💬 Back to Chat", use_container_width=True):
+    if st.button("💬 Sohbete Dön", use_container_width=True):
         st.switch_page("main.py")
     
     st.divider()
     
     # View options
     view_option = st.radio(
-        "Select View",
-        ["Dashboard", "All Orders", "Order Details", "Order Agent"]
+        "Görünüm Seç",
+        ["Kontrol Paneli", "Tüm Siparişler", "Sipariş Detayları", "Sipariş Asistanı"]
     )
     
     # Email sending mode
@@ -51,15 +60,15 @@ with st.sidebar:
         st.session_state.real_email = False
 
     st.session_state.real_email = st.checkbox(
-        "Enable real email sending (requires SENDER_EMAIL & SENDER_PASSWORD in .env)",
+        "Gerçek e-posta gönderimini etkinleştir (.env dosyasında SENDER_EMAIL ve SENDER_PASSWORD gerektirir)",
         value=st.session_state.real_email
     )
 
 # --- Main Content ---
-st.title("📦 Order Tracking System")
+st.title("📦 Sipariş Takip Sistemi")
 
-if view_option == "Dashboard":
-    st.header("Dashboard")
+if view_option == "Kontrol Paneli":
+    st.header("Kontrol Paneli")
     
     # Get statistics
     all_orders = database.get_all_orders()
@@ -72,62 +81,66 @@ if view_option == "Dashboard":
         delivered_count = len([o for o in all_orders if o["status"] == "delivered"])
         pending_count = len([o for o in all_orders if o["status"] == "pending"])
         
-        col1.metric("Total Orders", total_orders)
-        col2.metric("Total Revenue", f"${total_revenue:.2f}")
-        col3.metric("Delivered", delivered_count)
-        col4.metric("Pending", pending_count)
+        col1.metric("Toplam Sipariş", total_orders)
+        col2.metric("Toplam Gelir", f"${total_revenue:.2f}")
+        col3.metric("Teslim Edilen", delivered_count)
+        col4.metric("Bekleyen", pending_count)
         
         st.divider()
         
         # Status breakdown
         status_breakdown = {}
         for order in all_orders:
-            status = order["status"]
+            # Durumları Türkçeye çevirerek grupla
+            status = STATUS_MAP.get(order["status"], order["status"])
             status_breakdown[status] = status_breakdown.get(status, 0) + 1
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Orders by Status")
+            st.subheader("Duruma Göre Siparişler")
             status_df = pd.DataFrame(
                 list(status_breakdown.items()),
-                columns=["Status", "Count"]
+                columns=["Durum", "Sayı"]
             )
-            st.bar_chart(status_df.set_index("Status"))
+            st.bar_chart(status_df.set_index("Durum"))
         
         with col2:
-            st.subheader("Recent Orders")
+            st.subheader("Son Siparişler")
             recent_orders = all_orders[:5]
             recent_df = pd.DataFrame([
                 {
-                    "Order ID": o["order_id"],
-                    "Customer": o["customer_name"],
-                    "Amount": f"${o['total_amount']:.2f}",
-                    "Status": o["status"],
-                    "Date": o["created_at"]
+                    "Sipariş ID": o["order_id"],
+                    "Müşteri": o["customer_name"],
+                    "Tutar": f"${o['total_amount']:.2f}",
+                    "Durum": STATUS_MAP.get(o["status"], o["status"]),
+                    "Tarih": o["created_at"]
                 }
                 for o in recent_orders
             ])
             st.dataframe(recent_df, use_container_width=True)
     else:
-        st.info("No orders found in the system")
+        st.info("Sistemde sipariş bulunamadı")
 
-elif view_option == "All Orders":
-    st.header("All Orders")
+elif view_option == "Tüm Siparişler":
+    st.header("Tüm Siparişler")
     
     # Filter options
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        status_filter = st.selectbox(
-            "Filter by Status",
-            ["All", "pending", "processing", "shipped", "delivered"]
+        # Arayüz için Türkçe, arka plan için İngilizce durumlar
+        filter_options = {"Tümü": "All", "Bekleyen": "pending", "İşleniyor": "processing", "Kargolandı": "shipped", "Teslim Edildi": "delivered"}
+        selected_filter_tr = st.selectbox(
+            "Duruma Göre Filtrele",
+            list(filter_options.keys())
         )
+        status_filter = filter_options[selected_filter_tr]
     
     with col2:
         sort_option = st.selectbox(
-            "Sort by",
-            ["Latest First", "Oldest First", "Highest Amount", "Lowest Amount"]
+            "Sıralama",
+            ["Yeniden Eskiye", "Eskiden Yeniye", "En Yüksek Tutar", "En Düşük Tutar"]
         )
     
     # Get orders
@@ -137,13 +150,13 @@ elif view_option == "All Orders":
         orders = database.get_orders_by_status(status_filter)
     
     # Sort
-    if sort_option == "Latest First":
+    if sort_option == "Yeniden Eskiye":
         orders.sort(key=lambda x: x["created_at"], reverse=True)
-    elif sort_option == "Oldest First":
+    elif sort_option == "Eskiden Yeniye":
         orders.sort(key=lambda x: x["created_at"])
-    elif sort_option == "Highest Amount":
+    elif sort_option == "En Yüksek Tutar":
         orders.sort(key=lambda x: x["total_amount"], reverse=True)
-    else:  # Lowest Amount
+    else:  # En Düşük Tutar
         orders.sort(key=lambda x: x["total_amount"])
     
     # Display orders
@@ -154,24 +167,24 @@ elif view_option == "All Orders":
             items_str = ", ".join([f"{item['name']} x{item['quantity']}" for item in items])
             
             orders_data.append({
-                "Order ID": order["order_id"],
-                "Customer": order["customer_name"],
-                "Email": order["customer_email"],
-                "Items": items_str,
-                "Amount": f"${order['total_amount']:.2f}",
-                "Status": order["status"],
-                "Date": order["created_at"]
+                "Sipariş ID": order["order_id"],
+                "Müşteri": order["customer_name"],
+                "E-posta": order["customer_email"],
+                "Ürünler": items_str,
+                "Tutar": f"${order['total_amount']:.2f}",
+                "Durum": STATUS_MAP.get(order["status"], order["status"]),
+                "Tarih": order["created_at"]
             })
         
         df = pd.DataFrame(orders_data)
         st.dataframe(df, use_container_width=True)
     else:
-        st.info("No orders found")
+        st.info("Sipariş bulunamadı")
 
-elif view_option == "Order Details":
-    st.header("Order Details")
+elif view_option == "Sipariş Detayları":
+    st.header("Sipariş Detayları")
     
-    order_id = st.text_input("Enter Order ID", placeholder="ORD-001")
+    order_id = st.text_input("Sipariş ID Girin", placeholder="Örn: ORD-001")
     
     if order_id:
         order = database.get_order(order_id)
@@ -180,46 +193,55 @@ elif view_option == "Order Details":
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                st.subheader(f"Order {order_id}")
+                st.subheader(f"Sipariş {order_id}")
                 
                 # Order info
                 info_col1, info_col2 = st.columns(2)
                 
                 with info_col1:
-                    st.write(f"**Customer Name:** {order['customer_name']}")
-                    st.write(f"**Customer Email:** {order['customer_email']}")
-                    st.write(f"**Created:** {order['created_at']}")
+                    st.write(f"**Müşteri Adı:** {order['customer_name']}")
+                    st.write(f"**Müşteri E-posta:** {order['customer_email']}")
+                    st.write(f"**Oluşturulma:** {order['created_at']}")
                 
                 with info_col2:
-                    st.write(f"**Status:** {order['status'].upper()}")
-                    st.write(f"**Updated:** {order['updated_at']}")
-                    st.write(f"**Total Amount:** ${order['total_amount']:.2f}")
+                    st.write(f"**Durum:** {STATUS_MAP.get(order['status'], order['status']).upper()}")
+                    st.write(f"**Güncellenme:** {order['updated_at']}")
+                    st.write(f"**Toplam Tutar:** ${order['total_amount']:.2f}")
                 
                 if order['notes']:
-                    st.write(f"**Notes:** {order['notes']}")
+                    st.write(f"**Notlar:** {order['notes']}")
                 
                 st.divider()
                 
                 # Items
-                st.subheader("Items")
+                st.subheader("Ürünler")
                 items = json.loads(order["items"])
                 items_df = pd.DataFrame(items)
                 st.dataframe(items_df, use_container_width=True)
             
             with col2:
-                st.subheader("Actions")
+                st.subheader("İşlemler")
                 
                 # Update status
-                new_status = st.selectbox(
-                    "Update Status",
-                    ["pending", "processing", "shipped", "delivered"]
-                )
-                notes = st.text_area("Add Notes", height=100)
+                update_options = {"Bekleyen": "pending", "İşleniyor": "processing", "Kargolandı": "shipped", "Teslim Edildi": "delivered"}
                 
-                if st.button("Update Order", use_container_width=True, type="primary"):
+                # Varsayılan değeri mevcut duruma ayarla (eğer sözlükte varsa)
+                current_status_tr = STATUS_MAP.get(order['status'], "Bekleyen")
+                index_val = list(update_options.keys()).index(current_status_tr) if current_status_tr in update_options else 0
+                
+                selected_update_tr = st.selectbox(
+                    "Durumu Güncelle",
+                    list(update_options.keys()),
+                    index=index_val
+                )
+                new_status = update_options[selected_update_tr]
+                
+                notes = st.text_area("Not Ekle", height=100)
+                
+                if st.button("Siparişi Güncelle", use_container_width=True, type="primary"):
                     updated_order = database.update_order_status(order_id, new_status, notes)
                     if updated_order:
-                        st.success(f"✅ Order {order_id} updated to {new_status}")
+                        st.success(f"✅ Sipariş {order_id} durumu '{selected_update_tr}' olarak güncellendi")
                         
                         # Send email notification (use real email if enabled in sidebar)
                         if new_status == "shipped":
@@ -228,52 +250,54 @@ elif view_option == "Order Details":
                                 "shipped",
                                 use_real=bool(st.session_state.get("real_email", False)),
                             )
-                            st.info("📧 Shipped notification sent")
+                            st.info("📧 Kargo bildirimi gönderildi")
                         elif new_status == "delivered":
                             email_service.send_order_notification(
                                 updated_order,
                                 "delivered",
                                 use_real=bool(st.session_state.get("real_email", False)),
                             )
-                            st.info("📧 Delivery notification sent")
+                            st.info("📧 Teslimat bildirimi gönderildi")
                     else:
-                        st.error("Failed to update order")
+                        st.error("Sipariş güncellenemedi")
                 
                 st.divider()
                 
                 # Email logs
-                st.subheader("Email History")
+                st.subheader("E-posta Geçmişi")
                 email_logs = database.get_email_logs(order_id)
                 if email_logs:
                     logs_df = pd.DataFrame([
                         {
-                            "Type": log["email_type"],
-                            "Status": log["status"],
-                            "Sent": log["sent_at"]
+                            "Tür": log["email_type"],
+                            "Durum": log["status"],
+                            "Gönderildi": log["sent_at"]
                         }
                         for log in email_logs
                     ])
                     st.dataframe(logs_df, use_container_width=True)
                 else:
-                    st.info("No emails sent for this order")
+                    st.info("Bu sipariş için gönderilen e-posta yok")
         else:
-            st.error(f"Order {order_id} not found")
+            st.error(f"{order_id} numaralı sipariş bulunamadı")
 
 
-elif view_option == "Order Agent":
-    st.header("Order Tracking Agent")
+elif view_option == "Sipariş Asistanı":
+    st.header("Sipariş Takip Asistanı")
     
     if st.session_state.order_agent is None:
-        st.error("❌ Order Agent is not initialized. Please set GOOGLE_API_KEY in your environment.")
+        st.error("❌ Sipariş Asistanı başlatılamadı. Lütfen ortam değişkenlerinde GOOGLE_API_KEY ayarlayın.")
     else:
         st.info(
-            "💡 **How to use:** Ask questions about orders, customers, or order statuses. "
-            "The agent will help you find information and manage orders."
+            "💡 **Nasıl kullanılır:** Siparişler, müşteriler veya sipariş durumları hakkında sorular sorun. "
+            "Asistan bilgi bulmanıza ve siparişleri yönetmenize yardımcı olacaktır."
         )
         
         # Chat interface
         if "agent_messages" not in st.session_state:
             st.session_state.agent_messages = []
+        if "order_agent_chat_id" not in st.session_state:
+            st.session_state.order_agent_chat_id = None
         
         # Display chat history
         for message in st.session_state.agent_messages:
@@ -281,7 +305,7 @@ elif view_option == "Order Agent":
                 st.write(message["content"])
         
         # User input
-        user_input = st.chat_input("Ask about orders...")
+        user_input = st.chat_input("Siparişler hakkında soru sorun...")
         
         if user_input:
             # Add user message
@@ -291,11 +315,21 @@ elif view_option == "Order Agent":
                 st.write(user_input)
             
             # Get agent response
-            with st.spinner("Agent is thinking..."):
+            with st.spinner("Asistan düşünüyor..."):
+                # Asistanın yanıtını veriyoruz. (Asistanın Türkçe yanıtlamasını isterseniz, arka plandaki promptu güncellemeniz gerekebilir)
                 response = run_order_agent(st.session_state.order_agent, user_input)
             
             # Add assistant message
             st.session_state.agent_messages.append({"role": "assistant", "content": response})
+
+            record_chat_exchange(
+                session_key="order_agent_chat_id",
+                agent_name="Sipariş Takip Asistanı",
+                prompt=user_input,
+                response=response,
+                title="Sipariş Takip Asistanı",
+                source="order_inventory",
+            )
             
             with st.chat_message("assistant"):
                 st.write(response)

@@ -175,6 +175,82 @@ class EmailSender:
             order_id=order["order_id"],
             email_type="order_delivered"
         )
+
+    def send_low_stock_alert(self, low_stock_items: List[Dict]) -> bool:
+        """Send a low-stock alert to the business owner."""
+        if not low_stock_items:
+            return False
+
+        recipient = self.owner_email or self.sender_email
+        subject = f"Low Stock Alert - {len(low_stock_items)} item(s) need attention"
+
+        items_html = "<ul>"
+        for item in low_stock_items:
+            items_html += (
+                f"<li><strong>{item['product_name']}</strong>: "
+                f"{item['current_stock']} in stock, reorder at {item['reorder_level']}" 
+                f"</li>"
+            )
+        items_html += "</ul>"
+
+        body_html = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h2>Low Stock Alert</h2>
+                <p>One or more products are at or below the reorder threshold.</p>
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px;">
+                    {items_html}
+                </div>
+                <p>Please review replenishment options as soon as possible.</p>
+                <hr style="margin-top: 30px;">
+                <p style="color: #999; font-size: 12px;">This is an automated message, please do not reply.</p>
+            </body>
+        </html>
+        """
+
+        if self.use_mock:
+            print(f"[MOCK EMAIL] To: {recipient}")
+            print(f"[MOCK EMAIL] Subject: {subject}")
+            print("[MOCK EMAIL] Type: low_stock_alert")
+            database.log_system_email(
+                alert_type="low_stock_alert",
+                recipient_email=recipient,
+                subject=subject,
+                status="mock",
+                details=f"{len(low_stock_items)} item(s) below threshold",
+            )
+            return True
+
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = self.sender_email
+            msg["To"] = recipient
+            msg.attach(MIMEText(body_html, "html"))
+
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.sender_email, self.sender_password)
+                server.sendmail(self.sender_email, [recipient], msg.as_string())
+
+            database.log_system_email(
+                alert_type="low_stock_alert",
+                recipient_email=recipient,
+                subject=subject,
+                status="sent",
+                details=f"{len(low_stock_items)} item(s) below threshold",
+            )
+            return True
+        except Exception as e:
+            print(f"Failed to send low stock alert: {str(e)}")
+            database.log_system_email(
+                alert_type="low_stock_alert",
+                recipient_email=recipient,
+                subject=subject,
+                status="failed",
+                details=str(e),
+            )
+            return False
     
     def _send_email(
         self,
@@ -256,3 +332,9 @@ def send_order_notification(order: Dict, event_type: str = "created", tracking_n
         return sender.send_order_delivered(order)
     
     return False
+
+
+def send_low_stock_notification(low_stock_items: List[Dict], use_real: bool = False) -> bool:
+    """Send a low stock alert email."""
+    sender = EmailSender(use_mock=not bool(use_real))
+    return sender.send_low_stock_alert(low_stock_items)

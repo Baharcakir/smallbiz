@@ -17,7 +17,7 @@ def _read_csv(path: str) -> pd.DataFrame:
 def load_csv_tool(path: str) -> str:
     """Tool: load CSV and return schema and sample as JSON string."""
     if not os.path.exists(path):
-        return json.dumps({"status": "error", "error": f"file not found: {path}"})
+        return json.dumps({"status": "error", "error": f"dosya bulunamadı: {path}"})
     df = _read_csv(path)
     summary = {
         "status": "ok",
@@ -31,7 +31,7 @@ def load_csv_tool(path: str) -> str:
 def generate_aggregates_tool(path: str) -> str:
     """Return aggregates useful for dashboards."""
     if not os.path.exists(path):
-        return json.dumps({"status": "error", "error": f"file not found: {path}"})
+        return json.dumps({"status": "error", "error": f"dosya bulunamadı: {path}"})
     df = _read_csv(path)
     total_revenue = float(df["line_total"].sum())
     total_orders = int(df["order_id"].nunique())
@@ -52,7 +52,7 @@ def generate_aggregates_tool(path: str) -> str:
 def generate_time_series_tool(path: str, freq: str = "D") -> str:
     """Return timeseries revenue aggregated by date/freq."""
     if not os.path.exists(path):
-        return json.dumps({"status": "error", "error": f"file not found: {path}"})
+        return json.dumps({"status": "error", "error": f"dosya bulunamadı: {path}"})
     df = _read_csv(path)
     ts = (
         df.set_index("order_date")["line_total"].resample(freq).sum().fillna(0)
@@ -64,7 +64,7 @@ def generate_time_series_tool(path: str, freq: str = "D") -> str:
 def nlp_summarize_tool(path: str, n_top: int = 5) -> str:
     """Produce a small set of human readable insights from the data."""
     if not os.path.exists(path):
-        return json.dumps({"status": "error", "error": f"file not found: {path}"})
+        return json.dumps({"status": "error", "error": f"dosya bulunamadı: {path}"})
     df = _read_csv(path)
     insights: List[Dict[str, Any]] = []
 
@@ -72,13 +72,21 @@ def nlp_summarize_tool(path: str, n_top: int = 5) -> str:
     top = df.groupby("product_name")["line_total"].sum().sort_values(ascending=False)
     if not top.empty:
         top_name = top.index[0]
-        insights.append({"id": "top_product", "title": "Top product by revenue", "text": f'{top_name} generated ${top.iloc[0]:.2f} in revenue.'})
+        insights.append({
+            "id": "top_product", 
+            "title": "En Yüksek Gelirli Ürün", 
+            "text": f'{top_name}, toplam ${top.iloc[0]:.2f} gelir sağladı.'
+        })
 
     # region breakdown
     region = df.groupby("region")["line_total"].sum().sort_values(ascending=False)
     if not region.empty:
         reg_name = region.index[0]
-        insights.append({"id": "top_region", "title": "Top region", "text": f'{reg_name} is the strongest region with ${region.iloc[0]:.2f} revenue.'})
+        insights.append({
+            "id": "top_region", 
+            "title": "En Güçlü Bölge", 
+            "text": f'{reg_name}, ${region.iloc[0]:.2f} gelir ile en güçlü bölge konumunda.'
+        })
 
     # growth: compare last 30 days vs previous 30 days if possible
     try:
@@ -86,14 +94,22 @@ def nlp_summarize_tool(path: str, n_top: int = 5) -> str:
         last = df[df["order_date"] >= (max_date - pd.Timedelta(days=30))]["line_total"].sum()
         prior = df[(df["order_date"] < (max_date - pd.Timedelta(days=30))) & (df["order_date"] >= (max_date - pd.Timedelta(days=60)))]["line_total"].sum()
         pct = ((last - prior) / prior * 100) if prior else 0.0
-        insights.append({"id": "recent_growth", "title": "Recent growth", "text": f'Last 30 days revenue: ${last:.2f}. Change vs prior 30 days: {pct:.1f}%.'})
+        insights.append({
+            "id": "recent_growth", 
+            "title": "Son Dönem Büyümesi", 
+            "text": f'Son 30 günün geliri: ${last:.2f}. Önceki 30 güne kıyasla değişim: %{pct:.1f}.'
+        })
     except Exception:
         pass
 
     # average order size
     try:
         avg_order = df.groupby("order_id")["line_total"].sum().mean()
-        insights.append({"id": "avg_order", "title": "Average order value", "text": f'Average order value is ${avg_order:.2f}.'})
+        insights.append({
+            "id": "avg_order", 
+            "title": "Ortalama Sipariş Değeri", 
+            "text": f'Ortalama sipariş değeri (sepet tutarı) ${avg_order:.2f} olarak gerçekleşti.'
+        })
     except Exception:
         pass
 
@@ -101,7 +117,11 @@ def nlp_summarize_tool(path: str, n_top: int = 5) -> str:
     pm = df.groupby("payment_method")["line_total"].sum().sort_values(ascending=False)
     if not pm.empty:
         top_pm = pm.index[0]
-        insights.append({"id": "payment_share", "title": "Top payment method", "text": f'{top_pm} accounts for ${pm.iloc[0]:.2f} revenue.'})
+        insights.append({
+            "id": "payment_share", 
+            "title": "En Çok Tercih Edilen Ödeme Yöntemi", 
+            "text": f'{top_pm}, toplam gelirin ${pm.iloc[0]:.2f}\'lık kısmını oluşturuyor.'
+        })
 
     return json.dumps({"status": "ok", "insights": insights[:n_top]})
 
@@ -114,15 +134,15 @@ def chat_with_gemini(question: str, context: Optional[Dict[str, Any]] = None) ->
     # Try to use google.generativeai if available and GEMINI_API_KEY is set.
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        return json.dumps({"status": "error", "error": "GEMINI_API_KEY not set"})
+        return json.dumps({"status": "error", "error": "GEMINI_API_KEY ayarlanmamış"})
 
     try:
         import google.generativeai as genai
 
         genai.configure(api_key=api_key)
-        # simple chat call; keep payload small
-        system = "You are an analytics assistant. Answer concisely and reference provided context when helpful."
-        prompt = system + "\n\nContext:\n" + (json.dumps(context) if context else "no context") + "\n\nUser:\n" + question
+        # simple chat call; keep payload small. Added Turkish instruction here!
+        system = "Sen bir veri analitiği asistanısın. Cevaplarını kısa ve öz tut, gerektiğinde sana verilen bağlam (context) verilerini kullan. TÜM CEVAPLARINI TÜRKÇE VER."
+        prompt = system + "\n\nBağlam (Context):\n" + (json.dumps(context) if context else "bağlam yok") + "\n\nKullanıcı:\n" + question
         # The library surface may differ by version; try chat.create first, then fallback.
         try:
             resp = genai.chat.create(model="gemini-lite", messages=[{"role": "user", "content": prompt}])
@@ -136,7 +156,19 @@ def chat_with_gemini(question: str, context: Optional[Dict[str, Any]] = None) ->
 
         return json.dumps({"status": "ok", "response": str(text)})
     except Exception as e:
-        return json.dumps({"status": "error", "error": f"Gemini call failed: {e}"})
+        msg = str(e)
+        # Common protobuf/proto-plus compatibility error seen with some genai versions
+        if "ProtoType" in msg and "DESCRIPTOR" in msg:
+            hint = (
+                "Bu, protobuf/proto-plus uyumluluk sorunu gibi görünüyor. "
+                "Uyumlu bir protobuf sürümü yüklemeyi deneyin, örneğin:\n"
+                "pip install 'protobuf<4.24.0' --upgrade\n"
+                "veya 'protobuf==3.20.3' gibi bilinen iyi bir sürüme sabitleyin.\n"
+                "Ardından bağımlılıkları yeniden yükleyin ve uygulamayı yeniden başlatın."
+            )
+            return json.dumps({"status": "error", "error": f"Gemini çağrısı başarısız oldu: {msg}. {hint}"})
+
+        return json.dumps({"status": "error", "error": f"Gemini çağrısı başarısız oldu: {e}"})
 
 
 if __name__ == "__main__":

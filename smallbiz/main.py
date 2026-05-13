@@ -2,37 +2,41 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 
+from chat_history import ensure_chat_sessions, get_chat, summarize_prompt
+
 # Load .env so pages and services can read API keys / SMTP creds
 load_dotenv()
 
 # --- Page Config ---
-st.set_page_config(page_title="Gemini-Style Interface", page_icon="✨", layout="wide")
+st.set_page_config(page_title="SmallBiz", page_icon="✨", layout="wide")
 
 # --- Session State Initialization ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "active_agent" not in st.session_state:
-    st.session_state.active_agent = "General Assistant"
+    st.session_state.active_agent = "Genel Asistan"
 
-if "chat_sessions" not in st.session_state:
+ensure_chat_sessions()
+
+if not st.session_state.chat_sessions:
     initial_chat = {
         "id": f"chat_{int(time.time())}",
-        "title": "General Assistant",
+        "title": "Genel Asistan",
         "messages": st.session_state.messages,
         "agent": st.session_state.active_agent,
+        "source": "main",
         "updated_at": time.time(),
     }
     st.session_state.chat_sessions = [initial_chat]
 
 if "active_chat_id" not in st.session_state:
     st.session_state.active_chat_id = st.session_state.chat_sessions[0]["id"]
+elif get_chat(st.session_state.active_chat_id) is None:
+    st.session_state.active_chat_id = st.session_state.chat_sessions[0]["id"]
 
 
 def _get_chat(chat_id: str):
-    for chat in st.session_state.chat_sessions:
-        if chat["id"] == chat_id:
-            return chat
-    return None
+    return get_chat(chat_id)
 
 
 def _sync_active_chat(chat_id: str):
@@ -58,48 +62,46 @@ def _create_chat(agent_name: str, title: str | None = None):
 
 
 def _summarize_prompt(prompt: str) -> str:
-    cleaned = " ".join(prompt.strip().split())
-    if not cleaned:
-        return "New Chat"
-    if len(cleaned) > 36:
-        return cleaned[:36].rstrip() + "..."
-    return cleaned
+    return summarize_prompt(prompt)
 
 
 _sync_active_chat(st.session_state.active_chat_id)
 
 agents = [
-    "General Assistant",
-    "Stock Manager",
-    "Order Tracker",
-    "Workflow Manager",
-    "Data Analyst",
-    "Analytics Agent",
-    "Copywriter",
+    "Genel Asistan",
+    "Stok Yöneticisi",
+    "Sipariş Takipçisi",
+    "İş Akışı Yöneticisi",
+    "Veri Analisti",
+    "Analitik Asistanı",
+    "Metin Yazarı",
 ]
 
 # --- Sidebar (Gemini Style) ---
 with st.sidebar:
 
-    if st.button("＋ New Chat", use_container_width=True):
-        _create_chat(st.session_state.active_agent, title="New Chat")
+    if st.button("＋ Yeni Sohbet", use_container_width=True):
+        _create_chat(st.session_state.active_agent, title="Yeni Sohbet")
         st.rerun()
 
     # Redirect to dashboard page
-    if st.button("📊 Dashboard", use_container_width=True, type="primary"):
+    if st.button("📊 Kontrol Paneli", use_container_width=True, type="primary"):
         st.switch_page("pages/dashboard.py")
 
     # Redirect to order tracking page
-    if st.button("📦 Orders", use_container_width=True, type="primary"):
+    if st.button("📦 Siparişler", use_container_width=True, type="primary"):
         st.switch_page("pages/order_inventory.py")
 
-    if st.button("🧭 Workflow", use_container_width=True, type="primary"):
+    if st.button("📦 Stoklar", use_container_width=True, type="primary"):
+        st.switch_page("pages/stock_agent.py")
+
+    if st.button("🧭 Görevler", use_container_width=True, type="primary"):
         st.switch_page("pages/workflow_manager.py")
 
     st.divider()
 
     # 2. Chat History
-    st.caption("Recent")
+    st.caption("Eski Sohbetler")
     recent_sessions = sorted(
         st.session_state.chat_sessions,
         key=lambda item: item["updated_at"],
@@ -118,28 +120,17 @@ with st.sidebar:
             _sync_active_chat(chat["id"])
             st.rerun()
 
-    st.divider()
-
-    # 3. Agents
-    st.caption("Agents")
-    for agent in agents:
-        icon = "✨" if agent == st.session_state.active_agent else "🤖"
-
-        if st.button(f"{icon} {agent}", use_container_width=True, key=f"sidebar_{agent}"):
-            _create_chat(agent)
-            st.rerun()
-
 # --- Main Chat Area ---
 
 # Empty State Greeting
 if not st.session_state.messages:
     st.markdown(
-        f"<h1 style='text-align: center; color: #888;'>Hello, I'm your {st.session_state.active_agent}</h1>",
+        f"<h1 style='text-align: center; color: #888;'>Merhaba, ben {st.session_state.active_agent}</h1>",
         unsafe_allow_html=True
     )
 
     st.markdown(
-        "<h3 style='text-align: center; color: #bbb;'>How can I help you today?</h3>",
+        "<h3 style='text-align: center; color: #bbb;'>Bugün size nasıl yardımcı olabilirim?</h3>",
         unsafe_allow_html=True
     )
 
@@ -153,14 +144,14 @@ for message in st.session_state.messages:
 st.write("")
 
 # Chat Input
-if prompt := st.chat_input(f"Message {st.session_state.active_agent}..."):
+if prompt := st.chat_input(f"{st.session_state.active_agent}'a mesaj gönder..."):
 
     # User message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     current_chat = _get_chat(st.session_state.active_chat_id)
     if current_chat is not None:
-        if current_chat["title"] in {"New Chat", current_chat["agent"]}:
+        if current_chat["title"] in {"Yeni Sohbet", current_chat["agent"]}:
             current_chat["title"] = _summarize_prompt(prompt)
         current_chat["updated_at"] = time.time()
 
@@ -174,8 +165,8 @@ if prompt := st.chat_input(f"Message {st.session_state.active_agent}..."):
 
         mock_response = (
             f"**[{st.session_state.active_agent}]** "
-            f"I'm processing your request: *'{prompt}'*. "
-            f"I am ready to assist you based on my specialized training!"
+            f"Talebinizi işliyorum: *'{prompt}'*. "
+            f"Uzmanlık alanıma dayanarak size yardımcı olmaya hazırım!"
         )
 
         full_response = ""

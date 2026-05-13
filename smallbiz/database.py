@@ -55,6 +55,28 @@ CREATE TABLE IF NOT EXISTS tasks (
     notes TEXT,
     FOREIGN KEY(assigned_to_employee_id) REFERENCES employees(employee_id)
 );
+
+CREATE TABLE IF NOT EXISTS inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sku TEXT UNIQUE NOT NULL,
+    product_name TEXT UNIQUE NOT NULL,
+    current_stock INTEGER NOT NULL DEFAULT 0,
+    reorder_level INTEGER NOT NULL DEFAULT 0,
+    unit_cost REAL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS system_email_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_type TEXT NOT NULL,
+    recipient_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    status TEXT NOT NULL,
+    details TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 # Mock data
@@ -165,6 +187,73 @@ MOCK_TASKS = [
     },
 ]
 
+MOCK_INVENTORY = [
+    {
+        "sku": "SKU-LAP-001",
+        "product_name": "Laptop",
+        "current_stock": 18,
+        "reorder_level": 8,
+        "unit_cost": 800.00,
+        "notes": "Core demo item",
+    },
+    {
+        "sku": "SKU-MOU-001",
+        "product_name": "Mouse",
+        "current_stock": 6,
+        "reorder_level": 10,
+        "unit_cost": 12.00,
+        "notes": "Low stock demo item",
+    },
+    {
+        "sku": "SKU-MON-001",
+        "product_name": "Monitor",
+        "current_stock": 11,
+        "reorder_level": 5,
+        "unit_cost": 140.00,
+        "notes": "Healthy stock",
+    },
+    {
+        "sku": "SKU-KEY-001",
+        "product_name": "Keyboard",
+        "current_stock": 12,
+        "reorder_level": 6,
+        "unit_cost": 35.00,
+        "notes": "Healthy stock",
+    },
+    {
+        "sku": "SKU-USB-001",
+        "product_name": "USB-C Cable",
+        "current_stock": 4,
+        "reorder_level": 12,
+        "unit_cost": 4.00,
+        "notes": "Fast-moving accessory",
+    },
+    {
+        "sku": "SKU-HDP-001",
+        "product_name": "Headphones",
+        "current_stock": 9,
+        "reorder_level": 5,
+        "unit_cost": 70.00,
+        "notes": "Healthy stock",
+    },
+    {
+        "sku": "SKU-PHC-001",
+        "product_name": "Phone Case",
+        "current_stock": 22,
+        "reorder_level": 10,
+        "unit_cost": 6.50,
+        "notes": "Healthy stock",
+    },
+    {
+        "sku": "SKU-WEB-001",
+        "product_name": "Webcam",
+        "current_stock": 2,
+        "reorder_level": 5,
+        "unit_cost": 45.00,
+        "notes": "Needs reorder alert",
+    },
+]
+
 
 def init_database():
     """Initialize the database with schema and mock data."""
@@ -228,6 +317,24 @@ def init_database():
                     task["priority"],
                     task["due_date"],
                     task["notes"],
+                )
+            )
+        conn.commit()
+
+    cursor.execute("SELECT COUNT(*) FROM inventory")
+    if cursor.fetchone()[0] == 0:
+        for item in MOCK_INVENTORY:
+            cursor.execute(
+                """INSERT INTO inventory
+                (sku, product_name, current_stock, reorder_level, unit_cost, notes)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    item["sku"],
+                    item["product_name"],
+                    item["current_stock"],
+                    item["reorder_level"],
+                    item["unit_cost"],
+                    item["notes"],
                 )
             )
         conn.commit()
@@ -374,6 +481,223 @@ def get_email_logs(order_id: str) -> List[Dict]:
     return [dict(row) for row in rows]
 
 
+def log_system_email(alert_type: str, recipient_email: str, subject: str, status: str, details: str = ""):
+    """Log a system notification email that is not tied to a specific order."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """INSERT INTO system_email_logs
+        (alert_type, recipient_email, subject, status, details)
+        VALUES (?, ?, ?, ?, ?)""",
+        (alert_type, recipient_email, subject, status, details)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_system_email_logs(alert_type: str = "") -> List[Dict]:
+    """Get logged system notification emails."""
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM system_email_logs"
+    params: List[str] = []
+    if alert_type:
+        query += " WHERE alert_type = ?"
+        params.append(alert_type)
+    query += " ORDER BY sent_at DESC"
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def _parse_order_items(items_json: str) -> List[Dict]:
+    try:
+        items = json.loads(items_json)
+        return items if isinstance(items, list) else []
+    except Exception:
+        return []
+
+
+def get_inventory() -> List[Dict]:
+    """Get all inventory items."""
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM inventory ORDER BY product_name ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_inventory_item(product_name: str) -> Optional[Dict]:
+    """Get a single inventory item by product name."""
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM inventory WHERE lower(product_name) = lower(?)",
+        (product_name,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return dict(row)
+    return None
+
+
+def add_inventory_item(
+    sku: str,
+    product_name: str,
+    current_stock: int,
+    reorder_level: int,
+    unit_cost: float | None = None,
+    notes: str = "",
+) -> Optional[Dict]:
+    """Create or update an inventory item."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    existing = get_inventory_item(product_name)
+
+    try:
+        if existing:
+            cursor.execute(
+                """UPDATE inventory
+                SET sku = ?, current_stock = ?, reorder_level = ?, unit_cost = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE product_name = ?""",
+                (sku, current_stock, reorder_level, unit_cost, notes, product_name)
+            )
+        else:
+            cursor.execute(
+                """INSERT INTO inventory
+                (sku, product_name, current_stock, reorder_level, unit_cost, notes)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                (sku, product_name, current_stock, reorder_level, unit_cost, notes)
+            )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+    conn.close()
+    return get_inventory_item(product_name)
+
+
+def adjust_inventory_stock(product_name: str, delta: int, notes: str = "") -> Optional[Dict]:
+    """Adjust stock for an inventory item by delta."""
+    item = get_inventory_item(product_name)
+    if not item:
+        return None
+
+    new_stock = max(0, int(item["current_stock"]) + int(delta))
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE inventory
+        SET current_stock = ?, notes = COALESCE(NULLIF(?, ''), notes), updated_at = CURRENT_TIMESTAMP
+        WHERE product_name = ?""",
+        (new_stock, notes, product_name)
+    )
+    conn.commit()
+    conn.close()
+
+    return get_inventory_item(product_name)
+
+
+def get_low_stock_items() -> List[Dict]:
+    """Get inventory items at or below their reorder threshold."""
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """SELECT * FROM inventory
+        WHERE current_stock <= reorder_level
+        ORDER BY current_stock ASC, reorder_level DESC, product_name ASC"""
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_inventory_health() -> Dict:
+    """Get a compact health summary for inventory."""
+    inventory = get_inventory()
+    low_stock = [item for item in inventory if item["current_stock"] <= item["reorder_level"]]
+    out_of_stock = [item for item in inventory if item["current_stock"] <= 0]
+
+    return {
+        "total_items": len(inventory),
+        "low_stock_items": len(low_stock),
+        "out_of_stock_items": len(out_of_stock),
+        "healthy_items": len(inventory) - len(low_stock),
+    }
+
+
+def get_product_sales_summary(limit: int = 5) -> List[Dict]:
+    """Rank products by all-time quantity sold based on order history."""
+    orders = get_all_orders()
+    aggregated: Dict[str, Dict] = {}
+
+    for order in orders:
+        for item in _parse_order_items(order.get("items", "[]")):
+            name = str(item.get("name", "")).strip()
+            if not name:
+                continue
+            quantity = int(item.get("quantity", 0) or 0)
+            price = float(item.get("price", 0) or 0)
+            key = name.lower()
+            current = aggregated.get(key, {
+                "product_name": name,
+                "total_quantity_sold": 0,
+                "order_count": 0,
+                "total_revenue": 0.0,
+            })
+            current["total_quantity_sold"] += quantity
+            current["order_count"] += 1
+            current["total_revenue"] += quantity * price
+            aggregated[key] = current
+
+    ranked = sorted(
+        aggregated.values(),
+        key=lambda row: (row["total_quantity_sold"], row["order_count"], row["total_revenue"]),
+        reverse=True,
+    )
+    return ranked[:limit]
+
+
+def get_stock_recommendations(limit: int = 5) -> List[Dict]:
+    """Blend sales demand with current inventory to recommend the most wanted products."""
+    inventory_lookup = {item["product_name"].lower(): item for item in get_inventory()}
+    recommendations = []
+
+    for sales_item in get_product_sales_summary(limit=limit):
+        inventory_item = inventory_lookup.get(sales_item["product_name"].lower())
+        recommendations.append(
+            {
+                "product_name": sales_item["product_name"],
+                "total_quantity_sold": sales_item["total_quantity_sold"],
+                "order_count": sales_item["order_count"],
+                "total_revenue": round(sales_item["total_revenue"], 2),
+                "current_stock": inventory_item["current_stock"] if inventory_item else None,
+                "reorder_level": inventory_item["reorder_level"] if inventory_item else None,
+                "needs_restock": bool(
+                    inventory_item and inventory_item["current_stock"] <= inventory_item["reorder_level"]
+                ),
+            }
+        )
+
+    return recommendations
+
+
 def _next_employee_id() -> str:
     conn = get_connection()
     cursor = conn.cursor()
@@ -442,6 +766,55 @@ def get_employee_by_email(email: str) -> Optional[Dict]:
     if row:
         return dict(row)
     return None
+
+
+def get_employee_by_role_hint(role_hints: List[str]) -> Optional[Dict]:
+    """Get the first active employee whose role matches one of the provided hints."""
+    employees = get_employees(active_only=True)
+    for hint in role_hints:
+        lowered_hint = hint.lower()
+        for employee in employees:
+            if lowered_hint in employee.get("role", "").lower():
+                return employee
+    return employees[0] if employees else None
+
+
+def create_restock_task(
+    product_name: str,
+    current_stock: int,
+    reorder_level: int,
+    assigned_to_employee_id: Optional[str] = None,
+    assigned_by: str = "Stock Manager",
+) -> Optional[Dict]:
+    """Create a restock task for a low-stock item if one does not already exist."""
+    title = f"Stok Yenile: {product_name}"
+    existing_tasks = get_tasks()
+    for task in existing_tasks:
+        if task["title"].strip().lower() == title.lower() and task.get("status") != "done":
+            return task
+
+    if not assigned_to_employee_id:
+        assignee = get_employee_by_role_hint(["warehouse", "operations", "ops"])
+        if assignee:
+            assigned_to_employee_id = assignee["employee_id"]
+
+    if not assigned_to_employee_id:
+        return None
+
+    description = (
+        f"{product_name} stoğu yeniden sipariş seviyesinin altına düştü. "
+        f"Mevcut stok: {current_stock}. Yeniden sipariş seviyesi: {reorder_level}."
+    )
+    notes = f"auto-restock | product={product_name} | stock={current_stock} | reorder={reorder_level}"
+    return assign_task(
+        title=title,
+        description=description,
+        assigned_to_employee_id=assigned_to_employee_id,
+        assigned_by=assigned_by,
+        priority="high",
+        due_date="",
+        notes=notes,
+    )
 
 
 def get_employees(active_only: bool = True) -> List[Dict]:
