@@ -8,8 +8,12 @@ from dotenv import load_dotenv
 import database
 from agents.stock_manager_agent import create_stock_manager_agent, run_stock_manager_agent
 from chat_history import record_chat_exchange
+import auth
 
 load_dotenv()
+
+# Require login
+auth.require_login()
 
 st.set_page_config(
     page_title="Stok Yöneticisi",

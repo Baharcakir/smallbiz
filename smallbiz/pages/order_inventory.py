@@ -7,10 +7,14 @@ import email_service
 from agents.order_agent import create_order_agent, run_order_agent
 from chat_history import record_chat_exchange
 import os
+import auth
 from dotenv import load_dotenv
 
 # Load .env for API keys and SMTP credentials
 load_dotenv()
+
+# Require login
+auth.require_login()
 
 # --- Page Config ---
 st.set_page_config(

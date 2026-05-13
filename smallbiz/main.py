@@ -3,12 +3,23 @@ import time
 from dotenv import load_dotenv
 
 from chat_history import ensure_chat_sessions, get_chat, summarize_prompt
+import auth
 
 # Load .env so pages and services can read API keys / SMTP creds
 load_dotenv()
 
+# Initialize auth DB
+auth.init_auth()
+
 # --- Page Config ---
 st.set_page_config(page_title="SmallBiz", page_icon="✨", layout="wide")
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- Session State Initialization ---
 if "messages" not in st.session_state:
@@ -67,41 +78,46 @@ def _summarize_prompt(prompt: str) -> str:
 
 _sync_active_chat(st.session_state.active_chat_id)
 
-agents = [
-    "Genel Asistan",
-    "Stok Yöneticisi",
-    "Sipariş Takipçisi",
-    "İş Akışı Yöneticisi",
-    "Veri Analisti",
-    "Analitik Asistanı",
-    "Metin Yazarı",
-]
-
 # --- Sidebar (Gemini Style) ---
 with st.sidebar:
+    st.title("✨ SmallBiz")
+
+    if st.session_state.get("user_authenticated"):
+        st.caption(f"Girişli: {st.session_state.get('user_email')}")
+        if st.button("Çıkış Yap", use_container_width=True):
+            auth.logout()
+    else:
+        if st.button("Giriş / Kayıt", use_container_width=True):
+            st.switch_page("pages/login_register.py")
 
     if st.button("＋ Yeni Sohbet", use_container_width=True):
         _create_chat(st.session_state.active_agent, title="Yeni Sohbet")
         st.rerun()
 
-    # Redirect to dashboard page
-    if st.button("📊 Kontrol Paneli", use_container_width=True, type="primary"):
-        st.switch_page("pages/dashboard.py")
+    st.divider()
 
-    # Redirect to order tracking page
-    if st.button("📦 Siparişler", use_container_width=True, type="primary"):
-        st.switch_page("pages/order_inventory.py")
+    # --- Renkli ve Eğlenceli Navigasyon Menüsü ---
+    st.caption("🚀 Ajanlar")
+    
+    # Sayfa tanımlamaları: (Etiket, Sayfa Yolu, İkon, Renk)
+    nav_items = [
+        ("Kontrol Paneli", "pages/dashboard.py", "📊", "#FF4B4B"),
+        ("Sipariş Takibi", "pages/order_inventory.py", "📦", "#00C0F2"),
+        ("Stok Yönetimi", "pages/stock_agent.py", "🧱", "#FFAA00"),
+        ("Görev Yöneticisi", "pages/workflow_manager.py", "🧭", "#7D42FB"),
+        ("Analizler", "pages/analytics_agent.py", "📈", "#42F554"),
+    ]
 
-    if st.button("📦 Stoklar", use_container_width=True, type="primary"):
-        st.switch_page("pages/stock_agent.py")
-
-    if st.button("🧭 Görevler", use_container_width=True, type="primary"):
-        st.switch_page("pages/workflow_manager.py")
+    for label, page, icon, color in nav_items:
+        # Özel CSS ile butonları renklendirme (isteğe bağlı ama standart buton daha güvenli)
+        # Burada her buton için farklı bir stil tanımlıyoruz
+        if st.button(f"{icon} {label}", use_container_width=True, key=f"nav_{label}"):
+            st.switch_page(page)
 
     st.divider()
 
-    # 2. Chat History
-    st.caption("Eski Sohbetler")
+    # --- Chat History (Geçmiş Sohbetler) ---
+    st.caption("🕒 Son Sohbetler")
     recent_sessions = sorted(
         st.session_state.chat_sessions,
         key=lambda item: item["updated_at"],
@@ -110,16 +126,16 @@ with st.sidebar:
 
     for chat in recent_sessions[:5]:
         is_active = chat["id"] == st.session_state.active_chat_id
-        button_type = "primary" if is_active else "secondary"
+        # Aktif sohbeti daha belirgin yapalım
+        btn_label = f"💬 {chat['title']}"
         if st.button(
-            f"💬 {chat['title']}",
+            btn_label,
             use_container_width=True,
             key=f"hist_{chat['id']}",
-            type=button_type,
+            type="primary" if is_active else "secondary",
         ):
             _sync_active_chat(chat["id"])
             st.rerun()
-
 # --- Main Chat Area ---
 
 # Empty State Greeting
