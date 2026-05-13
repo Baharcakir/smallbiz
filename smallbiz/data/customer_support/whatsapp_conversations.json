@@ -1,0 +1,42 @@
+[
+  {
+    "conversation_id": "WP-001",
+    "customer_name": "Elif Yilmaz",
+    "customer_phone": "+905551112233",
+    "status": "bot_active",
+    "channel": "whatsapp",
+    "last_message_at": "2026-05-13 11:42:00",
+    "messages": [
+      {
+        "sender": "customer",
+        "message": "Merhaba, iade suresi kac gun?",
+        "created_at": "2026-05-13 11:41:12"
+      },
+      {
+        "sender": "agent",
+        "message": "Teslimattan sonraki 14 gun icinde kullanilmamis urunleri iade edebilirsiniz.",
+        "created_at": "2026-05-13 11:42:00"
+      }
+    ]
+  },
+  {
+    "conversation_id": "WP-002",
+    "customer_name": "Can Aydin",
+    "customer_phone": "+905559998877",
+    "status": "needs_human",
+    "channel": "whatsapp",
+    "last_message_at": "2026-05-13 10:16:00",
+    "messages": [
+      {
+        "sender": "customer",
+        "message": "Yanlis urun geldi, ne yapmaliyim?",
+        "created_at": "2026-05-13 10:15:24"
+      },
+      {
+        "sender": "agent",
+        "message": "Degisim icin urun fotografi ve siparis numaranizi paylasmaniz gerekir.",
+        "created_at": "2026-05-13 10:16:00"
+      }
+    ]
+  }
+]

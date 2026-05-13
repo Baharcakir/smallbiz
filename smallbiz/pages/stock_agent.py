@@ -21,6 +21,14 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 if "stock_agent" not in st.session_state:
     api_key = os.getenv("GOOGLE_API_KEY")
     st.session_state.stock_agent = create_stock_manager_agent(api_key) if api_key else create_stock_manager_agent("")
@@ -56,10 +64,12 @@ with st.sidebar:
         st.switch_page("main.py")
     if st.button("📊 Kontrol Paneli", use_container_width=True):
         st.switch_page("pages/dashboard.py")
-    if st.button("📦 Siparişler", use_container_width=True):
+    if st.button("📦 Sipariş Takibi", use_container_width=True):
         st.switch_page("pages/order_inventory.py")
-    if st.button("🧭 İş Akışı", use_container_width=True):
+    if st.button("🧭 Görev Yöneticisi", use_container_width=True):
         st.switch_page("pages/workflow_manager.py")
+    if st.button("📈 Analizler", use_container_width=True):
+        st.switch_page("pages/analytics.py")
     if st.button("💬 WhatsApp Destek", use_container_width=True):
         st.switch_page("pages/customer_support.py")
 

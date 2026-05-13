@@ -293,64 +293,47 @@ def run_order_agent(llm_with_tools, user_input: str) -> str:
         # If no routing matched, use Gemini (google.generativeai) to interpret, if configured
         try:
             if llm_with_tools and genai is not None:
-                # Build messages in a shape accepted by various google.generativeai versions
-                # Latest SDKs expect Message objects like: {"author": "user", "content": [{"type": "text", "text": "..."}]}
-                chat_messages = [
-                    {
-                        "author": "user",
-                        "content": [{"type": "text", "text": user_input}],
-                    }
-                ]
-
-                # Try genai.chat.create(...) if available, otherwise call genai.chat(...)
-                chat_callable = None
-                try:
-                    if hasattr(genai, "chat") and hasattr(genai.chat, "create"):
-                        chat_callable = genai.chat.create
-                    elif hasattr(genai, "chat") and callable(genai.chat):
-                        chat_callable = genai.chat
-                except Exception:
-                    chat_callable = None
-
-                if chat_callable is None:
-                    return "Gemini client available but chat API not found."
-
-                # Call the chat API defensively
-                try:
-                    model_name = llm_with_tools.get("model", "gemini-1.5")
-                    # Ensure model name uses expected prefix
-                    if isinstance(model_name, str) and not (model_name.startswith("models/") or model_name.startswith("tunedModels/")):
-                        model_name = f"models/{model_name}"
-
-                    resp = chat_callable(
-                        model=model_name,
-                        messages=chat_messages,
-                        temperature=llm_with_tools.get("temperature", 0.7),
+                # 1. Get the model name and ensure it's a valid Gemini 1.5 model string
+                model_name = llm_with_tools.get("model", "gemini-1.5-flash")
+                if model_name == "gemini-1.5":
+                    model_name = "gemini-1.5-flash"  # Fallback to flash if incomplete
+                
+                # 2. Instantiate the modern GenerativeModel
+                model = genai.GenerativeModel(model_name)
+                
+                # 3. Generate the response
+                response = model.generate_content(
+                    user_input,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=llm_with_tools.get("temperature", 0.7)
                     )
-                except TypeError:
-                    # Some versions expect positional args or different names; try fallback signature
-                    try:
-                        resp = chat_callable(chat_messages)
-                    except Exception as e:
-                        return f"Error calling Gemini chat API: {e}"
-
-                # Extract text from response (handle multiple response shapes)
-                try:
-                    if hasattr(resp, "candidates") and resp.candidates:
-                        return resp.candidates[0].content
-                    if isinstance(resp, dict) and "candidates" in resp and resp["candidates"]:
-                        first = resp["candidates"][0]
-                        if isinstance(first, dict) and "content" in first:
-                            return first["content"]
-                    if hasattr(resp, "output"):
-                        return str(resp.output)
-                    if hasattr(resp, "content"):
-                        return str(resp.content)
-                    return str(resp)
-                except Exception as e:
-                    return f"Error parsing Gemini response: {e}"
+                )
+                
+                # 4. Return the text directly
+                if response.text:
+                    return response.text
+                return "No text response generated."
+                
         except Exception as e:
             return f"Error calling Gemini API: {e}"
+
+        #         # Extract text from response (handle multiple response shapes)
+        #         try:
+        #             if hasattr(resp, "candidates") and resp.candidates:
+        #                 return resp.candidates[0].content
+        #             if isinstance(resp, dict) and "candidates" in resp and resp["candidates"]:
+        #                 first = resp["candidates"][0]
+        #                 if isinstance(first, dict) and "content" in first:
+        #                     return first["content"]
+        #             if hasattr(resp, "output"):
+        #                 return str(resp.output)
+        #             if hasattr(resp, "content"):
+        #                 return str(resp.content)
+        #             return str(resp)
+        #         except Exception as e:
+        #             return f"Error parsing Gemini response: {e}"
+        # except Exception as e:
+        #     return f"Error calling Gemini API: {e}"
 
         return "I couldn't determine an action for that request. Try specifying an order ID (e.g., ORD-001) or a customer email."
         

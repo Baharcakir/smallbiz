@@ -11,6 +11,10 @@ load_dotenv()
 # Initialize auth DB
 auth.init_auth()
 
+# --- Authentication Check: Redirect if not logged in ---
+if not st.session_state.get("user_authenticated"):
+    st.switch_page("pages/login_register.py")
+
 # --- Page Config ---
 st.set_page_config(page_title="SmallBiz", page_icon="✨", layout="wide")
 st.markdown("""

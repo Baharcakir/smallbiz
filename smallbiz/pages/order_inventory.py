@@ -23,6 +23,14 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Durum çevirileri (Arka plan işleyişini bozmamak için UI gösteriminde kullanılır)
 STATUS_MAP = {
     "pending": "Bekleyen",
@@ -50,6 +58,18 @@ with st.sidebar:
     
     if st.button("💬 Sohbete Dön", use_container_width=True):
         st.switch_page("main.py")
+    
+    if st.button("📊 Kontrol Paneli", use_container_width=True):
+        st.switch_page("pages/dashboard.py")
+
+    if st.button("📦 Stok Yönetimi", use_container_width=True):
+        st.switch_page("pages/stock_agent.py")
+
+    if st.button("🧭 Görev Yöneticisi", use_container_width=True):
+        st.switch_page("pages/workflow_manager.py")
+
+    if st.button("📈 Analizler", use_container_width=True):
+        st.switch_page("pages/analytics.py")
 
     if st.button("💬 WhatsApp Destek", use_container_width=True):
         st.switch_page("pages/customer_support.py")
@@ -66,10 +86,10 @@ with st.sidebar:
     if "real_email" not in st.session_state:
         st.session_state.real_email = False
 
-    st.session_state.real_email = st.checkbox(
-        "Gerçek e-posta gönderimini etkinleştir (.env dosyasında SENDER_EMAIL ve SENDER_PASSWORD gerektirir)",
-        value=st.session_state.real_email
-    )
+    ##st.session_state.real_email = st.checkbox(
+        ##"Bana e-posta gönderilsin.",
+        ##value=st.session_state.real_email
+    ##)
 
 # --- Main Content ---
 st.title("📦 Sipariş Takip Sistemi")

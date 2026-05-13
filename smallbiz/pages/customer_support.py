@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
+import auth
 from agents.customer_support_agent import (
     add_whatsapp_message,
     create_customer_support_agent,
@@ -25,6 +26,14 @@ st.set_page_config(
     page_icon="💬",
     layout="wide",
 )
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+auth.require_login()
 
 
 if "customer_support_agent" not in st.session_state:
@@ -44,10 +53,10 @@ def _run_support_prompt(prompt: str) -> dict:
     st.session_state.support_messages.append({"role": "assistant", "content": result["answer"]})
     record_chat_exchange(
         session_key="support_agent_chat_id",
-        agent_name="WhatsApp Destek Asistani",
+        agent_name="WhatsApp Destek Asistanı",
         prompt=prompt,
         response=result["answer"],
-        title="WhatsApp Destek Asistani",
+        title="WhatsApp Destek Asistanı",
         source="customer_support",
     )
     return result
@@ -74,15 +83,17 @@ def _conversation_rows(conversations: list[dict]) -> list[dict]:
 with st.sidebar:
     st.title("Navigasyon")
 
-    if st.button("💬 Sohbete Don", use_container_width=True):
+    if st.button("💬 Sohbete Dön", use_container_width=True):
         st.switch_page("main.py")
     if st.button("📊 Kontrol Paneli", use_container_width=True):
         st.switch_page("pages/dashboard.py")
-    if st.button("📦 Siparisler", use_container_width=True):
+    if st.button("📦 Sipariş Yönetimi", use_container_width=True):
         st.switch_page("pages/order_inventory.py")
-    if st.button("📦 Stoklar", use_container_width=True):
+    if st.button("📦 Stok Yönetimi", use_container_width=True):
         st.switch_page("pages/stock_agent.py")
-    if st.button("🧭 Is Akisi", use_container_width=True):
+    if st.button("📈 Analizler", use_container_width=True):
+        st.switch_page("pages/analytics.py")
+    if st.button("🧭 İş Akışı", use_container_width=True):
         st.switch_page("pages/workflow_manager.py")
 
     st.divider()
@@ -132,7 +143,7 @@ if selected_view == "Agent Test":
                 with st.expander("Kullanılan kaynaklar"):
                     st.dataframe(pd.DataFrame(result["sources"]), use_container_width=True, hide_index=True)
 
-elif selected_view == "Bilgi Kaynaklari":
+elif selected_view == "Bilgi Kaynakları":
     st.subheader("Bilgi Kaynakları")
     st.write("FAQ, politika ve ürün bilgisi dosyalarını `.md`, `.txt`, `.pdf`, `.doc` veya `.docx` olarak ekleyin.")
 
