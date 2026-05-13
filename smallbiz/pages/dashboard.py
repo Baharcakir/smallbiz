@@ -4,9 +4,13 @@ import database
 from dotenv import load_dotenv
 
 from chat_history import get_recent_chats
+import auth
 
 # Load .env so pages can access API keys / SMTP creds when opened directly
 load_dotenv()
+
+# Require login
+auth.require_login()
 
 # --- Page Config ---
 st.set_page_config(

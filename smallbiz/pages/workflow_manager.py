@@ -11,8 +11,12 @@ from agents.workflow_manager_agent import (
     run_workflow_manager_agent,
 )
 from chat_history import record_chat_exchange
+import auth
 
 load_dotenv()
+
+# Require login
+auth.require_login()
 
 st.set_page_config(
     page_title="İş Akışı Yöneticisi",

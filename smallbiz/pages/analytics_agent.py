@@ -5,7 +5,10 @@ from pathlib import Path
 import json
 
 from agents import analytics_agent
+import auth
 
+# Require login
+auth.require_login()
 
 st.set_page_config(page_title="Analitik Asistanı", layout="wide")
 
