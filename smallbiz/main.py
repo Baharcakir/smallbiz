@@ -26,6 +26,7 @@ if not st.session_state.chat_sessions:
         "agent": st.session_state.active_agent,
         "source": "main",
         "updated_at": time.time(),
+        "allow_delete": False,
     }
     st.session_state.chat_sessions = [initial_chat]
 
@@ -33,6 +34,17 @@ if "active_chat_id" not in st.session_state:
     st.session_state.active_chat_id = st.session_state.chat_sessions[0]["id"]
 elif get_chat(st.session_state.active_chat_id) is None:
     st.session_state.active_chat_id = st.session_state.chat_sessions[0]["id"]
+
+# Varsayılan Genel Asistan sohbeti: silinemez (eski oturumlar için)
+for _c in st.session_state.chat_sessions:
+    if _c.get("allow_delete") is False:
+        continue
+    if (
+        _c.get("agent") == "Genel Asistan"
+        and _c.get("title") == "Genel Asistan"
+        and _c.get("source") == "main"
+    ):
+        _c["allow_delete"] = False
 
 
 def _get_chat(chat_id: str):
@@ -56,6 +68,7 @@ def _create_chat(agent_name: str, title: str | None = None):
         "messages": [],
         "agent": agent_name,
         "updated_at": time.time(),
+        "allow_delete": True,
     }
     st.session_state.chat_sessions.insert(0, chat)
     _sync_active_chat(chat["id"])
@@ -63,6 +76,49 @@ def _create_chat(agent_name: str, title: str | None = None):
 
 def _summarize_prompt(prompt: str) -> str:
     return summarize_prompt(prompt)
+
+
+def _chat_can_delete(chat: dict | None) -> bool:
+    if not chat:
+        return False
+    if chat.get("allow_delete") is False:
+        return False
+    if chat.get("agent") == "Genel Asistan" and chat.get("title") == "Genel Asistan":
+        return False
+    return True
+
+
+def _short_title(title: str, max_len: int = 20) -> str:
+    t = (title or "").strip()
+    if len(t) <= max_len:
+        return t or "Sohbet"
+    return t[: max_len - 1].rstrip() + "…"
+
+
+def _delete_chats_by_ids(ids: set[str]) -> None:
+    if not ids:
+        return
+    sessions = st.session_state.chat_sessions
+    removable = {i for i in ids if _chat_can_delete(_get_chat(i))}
+    if not removable:
+        return
+    st.session_state.chat_sessions = [c for c in sessions if c["id"] not in removable]
+    if not st.session_state.chat_sessions:
+        st.session_state.chat_sessions = [
+            {
+                "id": f"chat_{int(time.time())}",
+                "title": "Genel Asistan",
+                "messages": [],
+                "agent": "Genel Asistan",
+                "source": "main",
+                "updated_at": time.time(),
+                "allow_delete": False,
+            }
+        ]
+        st.session_state.active_agent = "Genel Asistan"
+    if st.session_state.active_chat_id in removable:
+        st.session_state.active_chat_id = st.session_state.chat_sessions[0]["id"]
+        _sync_active_chat(st.session_state.active_chat_id)
 
 
 _sync_active_chat(st.session_state.active_chat_id)
@@ -98,27 +154,70 @@ with st.sidebar:
     if st.button("🧭 Görevler", use_container_width=True, type="primary"):
         st.switch_page("pages/workflow_manager.py")
 
+    if st.button("💬 WhatsApp Destek", use_container_width=True, type="primary"):
+        st.switch_page("pages/customer_support.py")
+
     st.divider()
 
-    # 2. Chat History
-    st.caption("Eski Sohbetler")
+    st.markdown(
+        """
+<style>
+div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) button {
+    color: #c62828 !important;
+    border-color: #ffcdd2 !important;
+    background: transparent !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    min-height: 1.35rem !important;
+    padding: 0 0.28rem !important;
+}
+</style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<p style="margin:0 0 0.35rem 0;font-size:0.72rem;color:#6b6b6b;">Eski sohbetler</p>',
+        unsafe_allow_html=True,
+    )
     recent_sessions = sorted(
         st.session_state.chat_sessions,
         key=lambda item: item["updated_at"],
         reverse=True,
     )
+    shown = recent_sessions[:5]
 
-    for chat in recent_sessions[:5]:
+    for chat in shown:
         is_active = chat["id"] == st.session_state.active_chat_id
-        button_type = "primary" if is_active else "secondary"
-        if st.button(
-            f"💬 {chat['title']}",
-            use_container_width=True,
-            key=f"hist_{chat['id']}",
-            type=button_type,
-        ):
-            _sync_active_chat(chat["id"])
-            st.rerun()
+        label = ("· " if is_active else "") + _short_title(chat["title"])
+        if _chat_can_delete(chat):
+            col_open, col_del = st.columns([11, 1], gap="small")
+            with col_open:
+                if st.button(
+                    label,
+                    use_container_width=True,
+                    key=f"hist_{chat['id']}",
+                    type="secondary",
+                ):
+                    _sync_active_chat(chat["id"])
+                    st.rerun()
+            with col_del:
+                if st.button(
+                    "×",
+                    key=f"del_{chat['id']}",
+                    help="Sil",
+                ):
+                    _delete_chats_by_ids({chat["id"]})
+                    st.rerun()
+        else:
+            if st.button(
+                label,
+                use_container_width=True,
+                key=f"hist_{chat['id']}",
+                type="secondary",
+            ):
+                _sync_active_chat(chat["id"])
+                st.rerun()
 
 # --- Main Chat Area ---
 

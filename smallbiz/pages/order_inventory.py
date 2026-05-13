@@ -46,6 +46,9 @@ with st.sidebar:
     
     if st.button("💬 Sohbete Dön", use_container_width=True):
         st.switch_page("main.py")
+
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
     
     st.divider()
     

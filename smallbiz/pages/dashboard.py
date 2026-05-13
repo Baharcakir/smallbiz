@@ -66,6 +66,9 @@ with st.sidebar:
     if st.button("🧭 İş Akışı", use_container_width=True):
         st.switch_page("pages/workflow_manager.py")
 
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
+
 # --- Dashboard Header ---
 st.title("📊 Kontrol Paneli")
 st.caption("Yüklediğiniz verilerden içgörüler elde edin ve işinizi büyütün.")

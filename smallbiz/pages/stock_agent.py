@@ -56,6 +56,8 @@ with st.sidebar:
         st.switch_page("pages/order_inventory.py")
     if st.button("🧭 İş Akışı", use_container_width=True):
         st.switch_page("pages/workflow_manager.py")
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
 
     st.divider()
     st.session_state.stock_real_email = st.checkbox(

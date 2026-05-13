@@ -72,6 +72,9 @@ with st.sidebar:
     if st.button("📦 Stoklar", use_container_width=True):
         st.switch_page("pages/stock_agent.py")
 
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
+
     st.divider()
     
     view_options_map = {
