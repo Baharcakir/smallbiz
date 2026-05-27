@@ -5,7 +5,23 @@ import auth
 # Load .env
 load_dotenv()
 
-st.set_page_config(page_title="Giriş / Kayıt", page_icon="🔒", layout="centered")
+# Redirect already logged-in users to main page
+if st.session_state.get("user_authenticated"):
+    st.switch_page("main.py")
+
+st.set_page_config(page_title="Giriş / Kayıt", page_icon="🔒", layout="centered",initial_sidebar_state="collapsed")
+
+# Sidebar'ı gizle
+st.markdown("""
+    <style>
+        /* Navigasyon listesini gizle */
+        [data-testid="stSidebarNav"] {display: none;}
+        /* Sidebar'ın kendisini tamamen etkisizleştir */
+        [data-testid="stSidebar"] {display: none;}
+        /* Sol üstteki sidebar açma butonunu gizle */
+        [data-testid="collapsedControl"] {display: none;}
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("🔒 Giriş / Kayıt")
 
@@ -29,7 +45,7 @@ with tabs[0]:
                 st.session_state["user_email"] = user["email"]
                 st.session_state["user_company"] = user["company_name"]
                 st.success(f"Hoş geldiniz, {user['company_name']}!")
-                st.experimental_rerun()
+                st.switch_page("main.py")
             else:
                 st.error("Geçersiz e-posta veya parola.")
 
@@ -49,13 +65,13 @@ with tabs[1]:
                 st.session_state["user_authenticated"] = True
                 st.session_state["user_email"] = created["email"]
                 st.session_state["user_company"] = created["company_name"]
-                st.experimental_rerun()
+                st.switch_page("main.py")
             else:
                 st.error("Bu e-posta zaten kayıtlı.")
 
 # Offer logout if already logged in
 if st.session_state.get("user_authenticated"):
     st.divider()
-    st.write(f"Girişli: {st.session_state.get('user_email')} ({st.session_state.get('user_company')})")
+    st.write(f"Giriş Yapıldı: {st.session_state.get('user_email')} ({st.session_state.get('user_company')})")
     if st.button("Çıkış Yap"):
         auth.logout()

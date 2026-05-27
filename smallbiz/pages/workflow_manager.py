@@ -24,6 +24,14 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Arka plan işleyişini bozmamak için çeviri sözlükleri
 STATUS_MAP = {"": "", "Yapılacak": "todo", "Devam Ediyor": "in_progress", "Engellendi": "blocked", "Tamamlandı": "done"}
 PRIORITY_MAP = {"": "", "Düşük": "low", "Orta": "medium", "Yüksek": "high"}
@@ -71,10 +79,14 @@ with st.sidebar:
         st.switch_page("main.py")
     if st.button("📊 Kontrol Paneli", use_container_width=True):
         st.switch_page("pages/dashboard.py")
-    if st.button("📦 Siparişler", use_container_width=True):
+    if st.button("📦 Sipariş Takibi", use_container_width=True):
         st.switch_page("pages/order_inventory.py")
-    if st.button("📦 Stoklar", use_container_width=True):
+    if st.button("📦 Stok Yönetimi", use_container_width=True):
         st.switch_page("pages/stock_agent.py")
+    if st.button("📈 Analizler", use_container_width=True):
+        st.switch_page("pages/analytics_agent.py")
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
 
     st.divider()
     

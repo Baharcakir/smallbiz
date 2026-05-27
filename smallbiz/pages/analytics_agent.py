@@ -12,6 +12,14 @@ auth.require_login()
 
 st.set_page_config(page_title="Analitik Asistanı", layout="wide")
 
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 
 def get_default_csv_path() -> str:
     base = Path(__file__).resolve().parents[1]
@@ -30,11 +38,32 @@ def load_df(path: str) -> pd.DataFrame:
 def main():
     st.title("Analitik Asistanı")
 
-    sidebar = st.sidebar
-    sidebar.header("Kontroller")
-    csv_default = get_default_csv_path()
-    csv_path = sidebar.text_input("CSV Yolu", value=csv_default)
-    run = sidebar.button("Analizi Çalıştır")
+    with st.sidebar:
+
+        st.title("Navigasyon")
+
+        if st.button("💬 Sohbete Dön", use_container_width=True):
+            st.switch_page("main.py")
+        
+        if st.button("📦 Sipariş Takibi", use_container_width=True):
+            st.switch_page("pages/order_inventory.py")
+
+        if st.button("🧱 Stok Yönetimi", use_container_width=True):
+            st.switch_page("pages/order_inventory.py")
+
+        if st.button("🧭 Görev Yöneticisi", use_container_width=True):
+            st.switch_page("pages/workflow_manager.py")
+
+        if st.button("📈 Analizler", use_container_width=True):
+            st.switch_page("pages/analytics.py")
+
+        if st.button("💬 WhatsApp Destek", use_container_width=True):
+            st.switch_page("pages/customer_support.py")
+
+        st.header("Kontroller")
+        csv_default = get_default_csv_path()
+        csv_path = st.text_input("CSV Yolu", value=csv_default)
+        run = st.button("Analizi Çalıştır")
 
     if "df" not in st.session_state:
         try:

@@ -18,7 +18,13 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
-
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 def _format_currency(value: float) -> str:
     return f"${value:,.2f}"
@@ -64,11 +70,20 @@ with st.sidebar:
     if st.button("💬 Sohbete Dön", use_container_width=True):
         st.switch_page("main.py")
     
-    if st.button("📦 Siparişleri Görüntüle", use_container_width=True):
+    if st.button("📦 Sipariş Takibi", use_container_width=True):
         st.switch_page("pages/order_inventory.py")
 
-    if st.button("🧭 İş Akışı", use_container_width=True):
+    if st.button("🧱 Stok Yönetimi", use_container_width=True):
+        st.switch_page("pages/order_inventory.py")
+
+    if st.button("🧭 Görev Yöneticisi", use_container_width=True):
         st.switch_page("pages/workflow_manager.py")
+
+    if st.button("📈 Analizler", use_container_width=True):
+        st.switch_page("pages/analytics.py")
+
+    if st.button("💬 WhatsApp Destek", use_container_width=True):
+        st.switch_page("pages/customer_support.py")
 
 # --- Dashboard Header ---
 st.title("📊 Kontrol Paneli")

@@ -108,11 +108,9 @@ def verify_user(email: str, password: str) -> Optional[Dict]:
 
 def require_login():
     # Call at top of pages that require authentication
+    # Directly redirect to login page if not authenticated
     if not st.session_state.get("user_authenticated"):
-        st.warning("Giriş yapmalısınız — lütfen giriş sayfasına yönlendiriliyorsunuz.")
-        if st.button("Giriş Sayfasına Git"):
-            st.switch_page("pages/login_register.py")
-        st.stop()
+        st.switch_page("pages/login_register.py")
 
 
 def logout():

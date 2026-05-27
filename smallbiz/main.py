@@ -11,6 +11,10 @@ load_dotenv()
 # Initialize auth DB
 auth.init_auth()
 
+# --- Authentication Check: Redirect if not logged in ---
+if not st.session_state.get("user_authenticated"):
+    st.switch_page("pages/login_register.py")
+
 # --- Page Config ---
 st.set_page_config(page_title="SmallBiz", page_icon="✨", layout="wide")
 st.markdown("""
@@ -106,6 +110,7 @@ with st.sidebar:
         ("Stok Yönetimi", "pages/stock_agent.py", "🧱", "#FFAA00"),
         ("Görev Yöneticisi", "pages/workflow_manager.py", "🧭", "#7D42FB"),
         ("Analizler", "pages/analytics_agent.py", "📈", "#42F554"),
+        ("WhatsApp Destek", "pages/customer_support.py", "💬", "#25D366"),
     ]
 
     for label, page, icon, color in nav_items:
