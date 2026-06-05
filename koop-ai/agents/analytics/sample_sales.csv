@@ -1,0 +1,51 @@
+date,product_name,quantity,unit_price,total,customer_region
+2024-01-05,Hatay Biber Salçası,5,85,425,İstanbul
+2024-01-07,Sızma Zeytinyağı,2,220,440,Ankara
+2024-01-10,Doğal Defne Sabunu,8,45,360,İzmir
+2024-01-12,Hatay İsot Biberi,4,65,260,İstanbul
+2024-01-15,Antep Fıstıklı Sucuk,3,150,450,Bursa
+2024-01-18,Humus,6,70,420,İstanbul
+2024-01-20,Dövme Sumak,5,40,200,Ankara
+2024-01-22,Hatay Biber Salçası,3,85,255,İzmir
+2024-01-25,Sızma Zeytinyağı,1,220,220,İstanbul
+2024-01-28,Doğal Defne Sabunu,12,45,540,Adana
+2024-02-02,Hatay Biber Salçası,7,85,595,İstanbul
+2024-02-05,Antep Fıstıklı Sucuk,2,150,300,İzmir
+2024-02-08,Sızma Zeytinyağı,3,220,660,Ankara
+2024-02-10,Hatay İsot Biberi,6,65,390,Bursa
+2024-02-14,Doğal Defne Sabunu,10,45,450,İstanbul
+2024-02-16,Humus,4,70,280,İstanbul
+2024-02-20,Hatay Biber Salçası,4,85,340,Hatay
+2024-02-22,Dövme Sumak,3,40,120,İzmir
+2024-02-25,Sızma Zeytinyağı,2,220,440,Ankara
+2024-02-28,Antep Fıstıklı Sucuk,5,150,750,İstanbul
+2024-03-03,Hatay Biber Salçası,8,85,680,İstanbul
+2024-03-06,Doğal Defne Sabunu,15,45,675,İzmir
+2024-03-10,Humus,7,70,490,Ankara
+2024-03-12,Hatay İsot Biberi,5,65,325,İstanbul
+2024-03-15,Sızma Zeytinyağı,4,220,880,Bursa
+2024-03-18,Antep Fıstıklı Sucuk,3,150,450,Hatay
+2024-03-20,Dövme Sumak,6,40,240,İstanbul
+2024-03-22,Hatay Biber Salçası,6,85,510,Ankara
+2024-03-25,Doğal Defne Sabunu,9,45,405,İstanbul
+2024-03-28,Sızma Zeytinyağı,2,220,440,İzmir
+2024-04-01,Hatay Biber Salçası,10,85,850,İstanbul
+2024-04-04,Humus,8,70,560,Ankara
+2024-04-07,Antep Fıstıklı Sucuk,4,150,600,İstanbul
+2024-04-10,Hatay İsot Biberi,7,65,455,Bursa
+2024-04-14,Doğal Defne Sabunu,20,45,900,İstanbul
+2024-04-16,Sızma Zeytinyağı,5,220,1100,Ankara
+2024-04-20,Dövme Sumak,4,40,160,İzmir
+2024-04-22,Hatay Biber Salçası,5,85,425,Hatay
+2024-04-25,Humus,6,70,420,İstanbul
+2024-04-28,Antep Fıstıklı Sucuk,2,150,300,Ankara
+2024-05-02,Hatay Biber Salçası,12,85,1020,İstanbul
+2024-05-05,Doğal Defne Sabunu,18,45,810,İzmir
+2024-05-08,Sızma Zeytinyağı,3,220,660,Ankara
+2024-05-10,Hatay İsot Biberi,9,65,585,İstanbul
+2024-05-14,Antep Fıstıklı Sucuk,6,150,900,Bursa
+2024-05-16,Humus,5,70,350,İstanbul
+2024-05-20,Dövme Sumak,7,40,280,Hatay
+2024-05-22,Hatay Biber Salçası,8,85,680,Ankara
+2024-05-25,Doğal Defne Sabunu,11,45,495,İstanbul
+2024-05-28,Sızma Zeytinyağı,4,220,880,İzmir
